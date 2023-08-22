@@ -1,6 +1,10 @@
 import logging
 import time
 import openai
+use_azure = True
+AZURE_API_VERSION = "2023-03-15-preview"
+api_base = "https://bigwhite.openai.azure.com/"
+deployment_name = "gpt35"
 
 MARKDOWN_PROMPT = """
 Your task is to translate a Markdown file, while preserving the original formatting,
@@ -57,6 +61,10 @@ def get_prompt_based_on_file_type(file_path: str) -> str:
         return CODE_PROMPT + f"The file name is {file_path}. You can infer the file type from the file name."
 
 def translate(text: str, source_language: str, target_language: str, api_key: str, file_prompt="") -> str:
+    if use_azure:
+        openai.api_type = "azure"
+        openai.api_version = AZURE_API_VERSION
+        openai.api_base = api_base
     openai.api_key = api_key
     retries = 3
     while retries > 0:
@@ -71,19 +79,35 @@ format: Return only the translated content, not including the original text."""
 
             time.sleep(3)  # Sleep for 3 seconds before each API call
             # 调用 ChatGPT API
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt,
-                    },
-                    {
-                        "role": "user",
-                        "content": user_prompt,
-                    }
-                ],
-            )
+            if use_azure:
+                completion = openai.ChatCompletion.create(
+                    # No need to specify model since deployment contain that information.
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt,
+                        }
+                    ],
+                    deployment_id=deployment_name
+                )
+            else:
+                completion = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt,
+                        }
+                    ],
+                )
             t_text = (
                 completion["choices"][0]
                 .get("message")
