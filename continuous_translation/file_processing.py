@@ -64,6 +64,8 @@ def process_files(repo_path: str, config, translate_func: str):
                     translated_merged_paragraph = translate_func(
                         merged_paragraph, source_language, target_language, api_key, file_type_prompt)
                 # 合并的翻译段落
+                if translated_merged_paragraph == None:
+                    translated_merged_paragraph = ""
                 translated += translated_merged_paragraph
 
             logging.info("Translation completed.")
