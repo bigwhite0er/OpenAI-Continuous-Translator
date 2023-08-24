@@ -7,13 +7,18 @@ from continuous_translation.translation import get_prompt_based_on_file_type, tr
 def merge_paragraphs(paragraphs, max_length):
     merged = []
     current_paragraph = ""
-
+    coding_flag = False
     for paragraph in paragraphs:
-        if len(current_paragraph) + len(paragraph) + 1 <= max_length:
-            current_paragraph += paragraph + "\n"
-        else:
+        if "```" in paragraph:
+            coding_flag = not coding_flag
+        if (len(current_paragraph) + len(paragraph) + 1 > max_length) or ("```" in paragraph):
+            if not coding_flag:
+                current_paragraph += paragraph + "\n"
+                paragraph = ""
             merged.append(current_paragraph.strip())
-            current_paragraph = paragraph + "\n"
+            current_paragraph = ""
+
+        current_paragraph += paragraph + "\n"
 
     if current_paragraph.strip():
         merged.append(current_paragraph.strip())
@@ -53,8 +58,11 @@ def process_files(repo_path: str, config, translate_func: str):
 
             translated = ""
             for merged_paragraph in merged_paragraphs:
-                translated_merged_paragraph = translate_func(
-                    merged_paragraph, source_language, target_language, api_key, file_type_prompt)
+                if "```" in merged_paragraph:
+                    translated_merged_paragraph = merged_paragraph
+                else:
+                    translated_merged_paragraph = translate_func(
+                        merged_paragraph, source_language, target_language, api_key, file_type_prompt)
                 # 合并的翻译段落
                 translated += translated_merged_paragraph
 
